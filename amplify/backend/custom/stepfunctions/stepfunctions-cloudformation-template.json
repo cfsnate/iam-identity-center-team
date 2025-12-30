@@ -698,11 +698,22 @@
                 {
                   "Variable": "$.overlapCheck.hasOverlappingSessions",
                   "BooleanEquals": true,
-                  "Next": "Skip Revoke - Update Status",
+                  "Next": "Skip Revoke - Add Revoke Marker",
                   "Comment": "Other active sessions exist, skip IAM revocation"
                 }
               ],
               "Default": "Revoke Permission"
+            },
+            "Skip Revoke - Add Revoke Marker": {
+              "Type": "Pass",
+              "Comment": "Add revoke marker so teamStatus sets status to ended",
+              "Result": {
+                "AccountAssignmentDeletionStatus": {
+                  "Status": "SKIPPED_OVERLAPPING_SESSION"
+                }
+              },
+              "ResultPath": "$.revoke",
+              "Next": "Skip Revoke - Update Status"
             },
             "Skip Revoke - Update Status": {
               "Type": "Task",
