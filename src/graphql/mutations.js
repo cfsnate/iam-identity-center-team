@@ -322,6 +322,7 @@ export const createEligibility = /* GraphQL */ `
   ) {
     createEligibility(input: $input, condition: $condition) {
       id
+      entityId
       name
       type
       accounts {
@@ -356,6 +357,7 @@ export const updateEligibility = /* GraphQL */ `
   ) {
     updateEligibility(input: $input, condition: $condition) {
       id
+      entityId
       name
       type
       accounts {
@@ -390,6 +392,7 @@ export const deleteEligibility = /* GraphQL */ `
   ) {
     deleteEligibility(input: $input, condition: $condition) {
       id
+      entityId
       name
       type
       accounts {

@@ -46,8 +46,15 @@ const COLUMN_DEFINITIONS = [
   {
     id: "id",
     sortingField: "id",
-    header: "Id",
+    header: "Policy Id",
     cell: (item) => item.id,
+    width: 140,
+  },
+  {
+    id: "entityId",
+    sortingField: "entityId",
+    header: "Entity Id",
+    cell: (item) => item.entityId || item.id,  // Fallback for legacy policies
     width: 140,
   },
   {
@@ -153,20 +160,21 @@ const MyCollectionPreferences = ({ preferences, setPreferences }) => {
         description: "Check to see all the text and wrap the lines",
       }}
       visibleContentPreference={{
-        title: "Select visible columns",
+        title: "Select visible columns",
         options: [
           {
             label: "Policy properties",
             options: [
-              { id: "id", label: "Id" },
-              { id: "name", label: "name" },
-              { id: "type", label: "type" },
-              { id: "ticketNo", label: "ticketNo" },
-              { id: "accounts", label: "accounts" },
-              { id: "ous", label: "ous" },
-              { id: "permissions", label: "permissions" },
-              { id: "duration", label: "duration" },
-              { id: "approvalRequired", label: "approvalRequired" },
+              { id: "id", label: "Policy Id" },
+              { id: "entityId", label: "Entity Id" },
+              { id: "name", label: "Name" },
+              { id: "type", label: "Type" },
+              { id: "ticketNo", label: "Ticket No" },
+              { id: "accounts", label: "Accounts" },
+              { id: "ous", label: "OUs" },
+              { id: "permissions", label: "Permissions" },
+              { id: "duration", label: "Duration" },
+              { id: "approvalRequired", label: "Approval Required" },
             ],
           },
         ],
@@ -562,7 +570,7 @@ function Eligible(props) {
             accounts: account.map(({ value, label }) => ({name: label, id: value})),
             permissions: permission.map(({ value,label }) => ({name: label, id: value})),
             ous: ou.map(({ value,label }) => ({name: label, id: value})),
-            id: item.value,
+            entityId: item.value,  // Store user/group ID in entityId field
             ticketNo: ticketNo,
             approvalRequired: approvalRequired,
             duration: duration
@@ -738,7 +746,7 @@ function Eligible(props) {
               <FormField
                 label="User"
                 stretch
-                description="User eligibility policy"
+                description="User eligibility policy (same user can have multiple policies)"
                 errorText={resourceError}
               >
                 <Multiselect
@@ -751,7 +759,6 @@ function Eligible(props) {
                     label: user.UserName,
                     value: user.UserId,
                     description: user.UserId,
-                    disabled: allItems.map(({ id }) => id).includes(user.UserId),
                   }))}
                   selectedOptions={resource}
                   onChange={(event) => {
@@ -767,7 +774,7 @@ function Eligible(props) {
               <FormField
                 label="Group"
                 stretch
-                description="Group eligibility policy"
+                description="Group eligibility policy (same group can have multiple policies)"
                 errorText={resourceError}
               >
                 <Multiselect
@@ -780,7 +787,6 @@ function Eligible(props) {
                     label: group.DisplayName,
                     value: group.GroupId,
                     description: group.GroupId,
-                    disabled: allItems.map(({ id }) => id).includes(group.GroupId),
                   }))}
                   selectedOptions={resource}
                   onChange={(event) => {
@@ -985,14 +991,17 @@ function Eligible(props) {
           header="Edit policy"
         >
           <SpaceBetween size="l">
-            <ColumnLayout columns={3} variant="text-grid">
+            <ColumnLayout columns={4} variant="text-grid">
               <ValueWithLabel label="Entity type">
                 {selectedItems[0].type}
               </ValueWithLabel>
               <ValueWithLabel label="Name">
                 {selectedItems[0].name}
               </ValueWithLabel>
-              <ValueWithLabel label="Id">{selectedItems[0].id}</ValueWithLabel>
+              <ValueWithLabel label="Entity Id">
+                {selectedItems[0].entityId || selectedItems[0].id}
+              </ValueWithLabel>
+              <ValueWithLabel label="Policy Id">{selectedItems[0].id}</ValueWithLabel>
             </ColumnLayout>
             <FormField
               label="Ticket No"
