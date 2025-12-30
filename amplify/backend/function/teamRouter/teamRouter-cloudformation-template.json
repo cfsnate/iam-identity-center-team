@@ -58,6 +58,10 @@
     "functionteamNotificationsArn": {
       "Type": "String",
       "Default": "functionteamNotificationsArn"
+    },
+    "functionteamCheckOverlappingSessionsArn": {
+      "Type": "String",
+      "Default": "functionteamCheckOverlappingSessionsArn"
     }
   },
   "Conditions": {
@@ -171,6 +175,9 @@
             },
             "FN_TEAMNOTIFICATIONS_ARN": {
               "Ref": "functionteamNotificationsArn"
+            },
+            "FN_TEAMCHECKOVERLAPPINGSESSIONS_ARN": {
+              "Ref": "functionteamCheckOverlappingSessionsArn"
             }
           }
         },

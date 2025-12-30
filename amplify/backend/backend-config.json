@@ -122,6 +122,13 @@
           ],
           "category": "function",
           "resourceName": "teamNotifications"
+        },
+        {
+          "attributes": [
+            "Arn"
+          ],
+          "category": "function",
+          "resourceName": "teamCheckOverlappingSessions"
         }
       ],
       "providerPlugin": "awscloudformation",
@@ -129,6 +136,11 @@
     }
   },
   "function": {
+    "teamCheckOverlappingSessions": {
+      "build": true,
+      "providerPlugin": "awscloudformation",
+      "service": "Lambda"
+    },
     "team06dbb7fcPreTokenGeneration": {
       "build": true,
       "dependsOn": [
@@ -244,6 +256,13 @@
           ],
           "category": "function",
           "resourceName": "teamNotifications"
+        },
+        {
+          "attributes": [
+            "Arn"
+          ],
+          "category": "function",
+          "resourceName": "teamCheckOverlappingSessions"
         }
       ],
       "providerPlugin": "awscloudformation",
@@ -406,6 +425,22 @@
     }
   },
   "parameters": {
+    "AMPLIFY_function_teamCheckOverlappingSessions_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "teamCheckOverlappingSessions"
+        }
+      ]
+    },
+    "AMPLIFY_function_teamCheckOverlappingSessions_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "teamCheckOverlappingSessions"
+        }
+      ]
+    },
     "AMPLIFY_function_team06dbb7fcPreTokenGeneration_deploymentBucketName": {
       "usedBy": [
         {

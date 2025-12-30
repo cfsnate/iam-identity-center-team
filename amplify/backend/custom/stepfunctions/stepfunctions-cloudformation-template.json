@@ -11,6 +11,10 @@
     "functionteamNotificationsArn": {
       "Type": "String",
       "Description": "Input parameter describing Arn attribute for function/teamNotifications resource"
+    },
+    "functionteamCheckOverlappingSessionsArn": {
+      "Type": "String",
+      "Description": "Input parameter describing Arn attribute for function/teamCheckOverlappingSessions resource"
     }
   },
   "Resources": {
@@ -650,8 +654,108 @@
                   "Next": "Pass"
                 }
               ],
-              "Default": "Revoke Permission",
+              "Default": "Check Overlapping Sessions",
               "Type": "Choice"
+            },
+            "Check Overlapping Sessions": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::lambda:invoke",
+              "Parameters": {
+                "FunctionName.$": "$.fn_teamcheckoverlappingsessions_arn",
+                "Payload.$": "$"
+              },
+              "ResultPath": "$.overlapCheck",
+              "ResultSelector": {
+                "hasOverlappingSessions.$": "$.Payload.hasOverlappingSessions",
+                "overlappingCount.$": "$.Payload.overlappingCount"
+              },
+              "Retry": [
+                {
+                  "BackoffRate": 2,
+                  "ErrorEquals": [
+                    "Lambda.ServiceException",
+                    "Lambda.AWSLambdaException",
+                    "Lambda.SdkClientException",
+                    "Lambda.TooManyRequestsException"
+                  ],
+                  "IntervalSeconds": 2,
+                  "MaxAttempts": 6
+                }
+              ],
+              "Catch": [
+                {
+                  "ErrorEquals": ["States.ALL"],
+                  "Next": "Revoke Permission",
+                  "ResultPath": "$.overlapCheckError",
+                  "Comment": "On error, proceed with revocation for security"
+                }
+              ],
+              "Next": "Has Overlapping Sessions?"
+            },
+            "Has Overlapping Sessions?": {
+              "Type": "Choice",
+              "Choices": [
+                {
+                  "Variable": "$.overlapCheck.hasOverlappingSessions",
+                  "BooleanEquals": true,
+                  "Next": "Skip Revoke - Update Status",
+                  "Comment": "Other active sessions exist, skip IAM revocation"
+                }
+              ],
+              "Default": "Revoke Permission"
+            },
+            "Skip Revoke - Update Status": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::lambda:invoke",
+              "Parameters": {
+                "FunctionName.$": "$.fn_teamstatus_arn",
+                "Payload.$": "$"
+              },
+              "ResultPath": "$.lastTaskResult",
+              "Retry": [
+                {
+                  "BackoffRate": 2,
+                  "ErrorEquals": [
+                    "Lambda.ServiceException",
+                    "Lambda.AWSLambdaException",
+                    "Lambda.SdkClientException",
+                    "Lambda.TooManyRequestsException"
+                  ],
+                  "IntervalSeconds": 2,
+                  "MaxAttempts": 6
+                }
+              ],
+              "Next": "Skip Revoke - Notify Session Ended"
+            },
+            "Skip Revoke - Notify Session Ended": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::lambda:invoke",
+              "Parameters": {
+                "FunctionName.$": "$.fn_teamnotifications_arn",
+                "Payload.$": "$"
+              },
+              "ResultPath": "$.lastTaskResult",
+              "Retry": [
+                {
+                  "BackoffRate": 2,
+                  "ErrorEquals": [
+                    "Lambda.ServiceException",
+                    "Lambda.AWSLambdaException",
+                    "Lambda.SdkClientException",
+                    "Lambda.TooManyRequestsException"
+                  ],
+                  "IntervalSeconds": 2,
+                  "MaxAttempts": 6
+                }
+              ],
+              "Catch": [
+                {
+                  "ErrorEquals": ["States.ALL"],
+                  "Next": "DynamoDB Update EndTime",
+                  "ResultPath": "$.error"
+                }
+              ],
+              "Next": "DynamoDB Update EndTime"
             },
             "Update Request Status": {
               "Next": "Revoke Error?",
@@ -1195,6 +1299,13 @@
                   "Action": ["lambda:InvokeFunction"],
                   "Resource": {
                     "Ref": "functionteamStatusArn"
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": ["lambda:InvokeFunction"],
+                  "Resource": {
+                    "Ref": "functionteamCheckOverlappingSessionsArn"
                   }
                 }
               ]
