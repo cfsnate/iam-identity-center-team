@@ -1,0 +1,8 @@
+{
+  "requests_table": "requests-dev",
+  "id": "test-request-id",
+  "email": "test@example.com",
+  "accountId": "123456789012",
+  "roleId": "arn:aws:sso:::permissionSet/ssoins-1234567890/ps-1234567890"
+}
+

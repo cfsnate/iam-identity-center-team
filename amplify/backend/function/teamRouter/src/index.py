@@ -30,6 +30,7 @@ notification_topic_arn = os.getenv("NOTIFICATION_TOPIC_ARN")
 sso_login_url = os.getenv("SSO_LOGIN_URL")
 fn_teamstatus_arn = os.getenv("FN_TEAMSTATUS_ARN")
 fn_teamnotifications_arn = os.getenv("FN_TEAMNOTIFICATIONS_ARN")
+fn_teamcheckoverlappingsessions_arn = os.getenv("FN_TEAMCHECKOVERLAPPINGSESSIONS_ARN")
 team_config = {
     "sso_login_url": sso_login_url,
     "requests_table": requests_table_name,
@@ -37,6 +38,7 @@ team_config = {
     "grant_sm": grant,
     "fn_teamstatus_arn": fn_teamstatus_arn,
     "fn_teamnotifications_arn": fn_teamnotifications_arn,
+    "fn_teamcheckoverlappingsessions_arn": fn_teamcheckoverlappingsessions_arn,
 }
 
 
