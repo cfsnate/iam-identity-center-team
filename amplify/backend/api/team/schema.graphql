@@ -196,7 +196,12 @@ type Eligibility
       { allow: private, provider: iam, operations: [read, update] }
     ]
   ) {
-  id: ID
+  id: ID!
+  entityId: String
+    @index(
+      name: "byEntityId"
+      queryField: "eligibilityByEntityId"
+    )
   name: String
   type: String
   accounts: [data]

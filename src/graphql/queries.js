@@ -321,6 +321,7 @@ export const getEligibility = /* GraphQL */ `
   query GetEligibility($id: ID!) {
     getEligibility(id: $id) {
       id
+      entityId
       name
       type
       accounts {
@@ -357,6 +358,55 @@ export const listEligibilities = /* GraphQL */ `
     listEligibilities(filter: $filter, limit: $limit, nextToken: $nextToken) {
       items {
         id
+        entityId
+        name
+        type
+        accounts {
+          name
+          id
+          __typename
+        }
+        ous {
+          name
+          id
+          __typename
+        }
+        permissions {
+          name
+          id
+          __typename
+        }
+        ticketNo
+        approvalRequired
+        duration
+        modifiedBy
+        createdAt
+        updatedAt
+        __typename
+      }
+      nextToken
+      __typename
+    }
+  }
+`;
+export const eligibilityByEntityId = /* GraphQL */ `
+  query EligibilityByEntityId(
+    $entityId: String!
+    $sortDirection: ModelSortDirection
+    $filter: ModelEligibilityFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    eligibilityByEntityId(
+      entityId: $entityId
+      sortDirection: $sortDirection
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        id
+        entityId
         name
         type
         accounts {

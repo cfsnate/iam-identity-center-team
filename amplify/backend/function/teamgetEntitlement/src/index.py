@@ -102,8 +102,42 @@ def list_account_for_ou(ouId):
 
 
 def get_entitlements(id):
-    response = policy_table.get_item(Key={"id": id})
-    return response
+    """
+    Get all eligibility policies for a user/group ID.
+    
+    Supports both old format (id = entityId) and new format (entityId field).
+    For backwards compatibility:
+    - First queries by entityId GSI for new-format policies
+    - Then falls back to direct get_item for old-format policies
+    - Returns all matching policies
+    """
+    policies = []
+    
+    # Query by entityId GSI for new-format policies
+    try:
+        response = policy_table.query(
+            IndexName='byEntityId',
+            KeyConditionExpression='entityId = :eid',
+            ExpressionAttributeValues={':eid': id}
+        )
+        if 'Items' in response:
+            policies.extend(response['Items'])
+    except ClientError as e:
+        # GSI might not exist yet in existing deployments
+        print(f"GSI query failed (may not exist yet): {e.response['Error']['Message']}")
+    
+    # Fallback: check for old-format policy where id = entityId
+    try:
+        response = policy_table.get_item(Key={"id": id})
+        if "Item" in response:
+            # Only add if not already in policies (avoid duplicates)
+            old_policy = response["Item"]
+            if not any(p.get('id') == old_policy.get('id') for p in policies):
+                policies.append(old_policy)
+    except ClientError as e:
+        print(f"Direct get_item failed: {e.response['Error']['Message']}")
+    
+    return {"Items": policies}
 
 
 def handler(event, context):
@@ -118,25 +152,32 @@ def handler(event, context):
     for id in [userId] + groupIds:
         if not id:
             continue
-        entitlement = get_entitlements(id)
-        print(entitlement)
-        if "Item" not in entitlement.keys():
+        entitlement_response = get_entitlements(id)
+        print(entitlement_response)
+        
+        # Handle both old format (single Item) and new format (multiple Items)
+        items = entitlement_response.get("Items", [])
+        if not items:
             continue
-        duration = entitlement["Item"]["duration"]
-        if int(duration) > maxDuration:
-            maxDuration = int(duration)
-        policy = {}
-        policy["accounts"] = entitlement["Item"]["accounts"]
+            
+        for item in items:
+            duration = item.get("duration", "0")
+            if int(duration) > maxDuration:
+                maxDuration = int(duration)
+            
+            policy = {}
+            policy["accounts"] = list(item.get("accounts", []))
 
-        for ou in entitlement["Item"]["ous"]:
-            data = list_account_for_ou(ou["id"])
-            policy["accounts"].extend(data)
+            for ou in item.get("ous", []):
+                data = list_account_for_ou(ou["id"])
+                policy["accounts"].extend(data)
 
-        policy["permissions"] = entitlement["Item"]["permissions"]
-        policy["approvalRequired"] = entitlement["Item"]["approvalRequired"]
-        policy["duration"] = str(maxDuration)
-        eligibility.append(policy)
-    result = {"id": event["id"], "policy": eligibility, "username":username}
+            policy["permissions"] = item.get("permissions", [])
+            policy["approvalRequired"] = item.get("approvalRequired", True)
+            policy["duration"] = item.get("duration", str(maxDuration))
+            eligibility.append(policy)
+            
+    result = {"id": event["id"], "policy": eligibility, "username": username}
     print(result)
 
     return publishPolicy(result)
