@@ -40,6 +40,10 @@ Parameters:
     Type: Number
     Description: Cache TTL in seconds for OU accounts cache
     Default: 604800
+  branch:
+    Type: String
+    Description: Git branch to deploy from
+    Default: main
 
 Conditions:
   IsEmptyCloudTrailAuditLogs: !Equals [!Ref CloudTrailAuditLogs, ""]
@@ -51,7 +55,7 @@ Resources:
     Properties:
       ServiceToken: !GetAtt 'TriggerBuildLambda.Arn'
       appId: !GetAtt AmplifyApp.AppId
-      branchName: main
+      branchName: !Ref branch
       branch: !GetAtt AmplifyBranch.Arn
 
   AmplifyRole:
@@ -147,7 +151,7 @@ Resources:
   AmplifyBranch:
     Type: AWS::Amplify::Branch
     Properties:
-      BranchName: main
+      BranchName: !Ref branch
       AppId: !GetAtt AmplifyApp.AppId
       EnableAutoBuild: true
       EnvironmentVariables: 
@@ -174,7 +178,7 @@ Resources:
           Value: amplify:al2023
       Tags:
         - Key: Branch
-          Value: main
+          Value: !Ref branch
   
   TriggerBuildLambda:
     Type: AWS::Lambda::Function

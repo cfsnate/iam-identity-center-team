@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "{\"createdOn\":\"Linux\",\"createdBy\":\"Amplify\",\"createdWith\":\"9.2.1\",\"stackType\":\"function-Lambda\",\"metadata\":{}}",
+  "Description": "Lambda Function to check for overlapping access sessions",
   "Parameters": {
     "CloudWatchRule": {
       "Type": "String",
@@ -46,16 +46,16 @@
             "Ref": "s3Key"
           }
         },
-        "Handler": "index.handler",
+        "Handler": "index.lambda_handler",
         "FunctionName": {
           "Fn::If": [
             "ShouldNotCreateEnvResources",
-            "teamgetAccounts",
+            "teamCheckOverlappingSessions",
             {
               "Fn::Join": [
                 "",
                 [
-                  "teamgetAccounts",
+                  "teamCheckOverlappingSessions",
                   "-",
                   {
                     "Ref": "env"
@@ -72,14 +72,7 @@
             },
             "REGION": {
               "Ref": "AWS::Region"
-            },
-            "ACCOUNT_ID": {
-              "Ref": "AWS::AccountId"
-            },
-            "ACCOUNTS_CACHE_TABLE_NAME": {
-              "Ref": "AccountsCacheTable"
-            },
-            "ACCOUNTS_CACHE_TTL": "300"
+            }
           }
         },
         "Role": {
@@ -90,7 +83,7 @@
         },
         "Runtime": "python3.10",
         "Layers": [],
-        "Timeout": 120
+        "Timeout": 25
       }
     },
     "LambdaExecutionRole": {
@@ -99,12 +92,12 @@
         "RoleName": {
           "Fn::If": [
             "ShouldNotCreateEnvResources",
-            "teamLambdaRoleb3b3af79",
+            "teamCheckOverlapLambdaRole",
             {
               "Fn::Join": [
                 "",
                 [
-                  "teamLambdaRoleb3b3af79",
+                  "teamCheckOverlapLambdaRole",
                   "-",
                   {
                     "Ref": "env"
@@ -156,7 +149,7 @@
               ],
               "Resource": {
                 "Fn::Sub": [
-                  "arn:aws:logs:${region}:${account}:log-group:/aws/lambda/${lambda}:log-stream:*",
+                  "arn:${AWS::Partition}:logs:${region}:${account}:log-group:/aws/lambda/${lambda}:log-stream:*",
                   {
                     "region": {
                       "Ref": "AWS::Region"
@@ -170,150 +163,19 @@
                   }
                 ]
               }
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "dynamodb:Scan"
+              ],
+              "Resource": {
+                "Fn::Sub": "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/requests*"
+              }
             }
           ]
         }
       }
-    },
-    "CustomLambdaExecutionPolicy": {
-      "Type": "AWS::IAM::Policy",
-      "Properties": {
-        "PolicyName": "custom-lambda-execution-policy",
-        "PolicyDocument": {
-          "Version": "2012-10-17",
-          "Statement": [
-            {
-              "Action": [
-                "organizations:Describe*",
-                "organizations:List*"
-              ],
-              "Resource": [
-                "*"
-              ],
-              "Effect": "Allow"
-            }
-          ]
-        },
-        "Roles": [
-          {
-            "Ref": "LambdaExecutionRole"
-          }
-        ]
-      },
-      "DependsOn": "LambdaExecutionRole"
-    },
-    "AccountsCacheTable": {
-      "Type": "AWS::DynamoDB::Table",
-      "Properties": {
-        "TableName": {
-          "Fn::If": [
-            "ShouldNotCreateEnvResources",
-            "team-accounts-cache",
-            {
-              "Fn::Join": [
-                "",
-                [
-                  "team-accounts-cache",
-                  "-",
-                  {
-                    "Ref": "env"
-                  }
-                ]
-              ]
-            }
-          ]
-        },
-        "AttributeDefinitions": [
-          {
-            "AttributeName": "cache_key",
-            "AttributeType": "S"
-          }
-        ],
-        "KeySchema": [
-          {
-            "AttributeName": "cache_key",
-            "KeyType": "HASH"
-          }
-        ],
-        "BillingMode": "PAY_PER_REQUEST",
-        "TimeToLiveSpecification": {
-          "AttributeName": "ttl",
-          "Enabled": true
-        },
-        "PointInTimeRecoverySpecification": {
-          "PointInTimeRecoveryEnabled": false
-        },
-        "SSESpecification": {
-          "SSEEnabled": true
-        }
-      }
-    },
-    "DynamoDBCachePolicy": {
-      "Type": "AWS::IAM::Policy",
-      "Properties": {
-        "PolicyName": "dynamodb-cache-policy",
-        "PolicyDocument": {
-          "Version": "2012-10-17",
-          "Statement": [
-            {
-              "Effect": "Allow",
-              "Action": [
-                "dynamodb:GetItem",
-                "dynamodb:PutItem",
-                "dynamodb:DeleteItem",
-                "dynamodb:Query"
-              ],
-              "Resource": {
-                "Fn::GetAtt": [
-                  "AccountsCacheTable",
-                  "Arn"
-                ]
-              }
-            }
-          ]
-        },
-        "Roles": [
-          {
-            "Ref": "LambdaExecutionRole"
-          }
-        ]
-      },
-      "DependsOn": [
-        "LambdaExecutionRole",
-        "AccountsCacheTable"
-      ]
-    },
-    "SelfInvokePolicy": {
-      "Type": "AWS::IAM::Policy",
-      "Properties": {
-        "PolicyName": "self-invoke-policy",
-        "PolicyDocument": {
-          "Version": "2012-10-17",
-          "Statement": [
-            {
-              "Effect": "Allow",
-              "Action": [
-                "lambda:InvokeFunction"
-              ],
-              "Resource": {
-                "Fn::GetAtt": [
-                  "LambdaFunction",
-                  "Arn"
-                ]
-              }
-            }
-          ]
-        },
-        "Roles": [
-          {
-            "Ref": "LambdaExecutionRole"
-          }
-        ]
-      },
-      "DependsOn": [
-        "LambdaExecutionRole",
-        "LambdaFunction"
-      ]
     }
   },
   "Outputs": {
@@ -344,19 +206,6 @@
       "Value": {
         "Fn::GetAtt": [
           "LambdaExecutionRole",
-          "Arn"
-        ]
-      }
-    },
-    "AccountsCacheTableName": {
-      "Value": {
-        "Ref": "AccountsCacheTable"
-      }
-    },
-    "AccountsCacheTableArn": {
-      "Value": {
-        "Fn::GetAtt": [
-          "AccountsCacheTable",
           "Arn"
         ]
       }

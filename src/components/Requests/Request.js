@@ -78,7 +78,10 @@ function Request(props) {
       uniqueAccounts.add(JSON.stringify(account));
     });
 
-    return Array.from(uniqueAccounts).map((account) => JSON.parse(account));
+    // Convert to array, parse, and sort alphabetically by account name
+    return Array.from(uniqueAccounts)
+      .map((account) => JSON.parse(account))
+      .sort((a, b) => a.name.localeCompare(b.name));
   }
 
   function concatenatePermissions(data) {
@@ -87,20 +90,32 @@ function Request(props) {
       uniquePermissions.add(JSON.stringify(permission));
     });
 
-    return Array.from(uniquePermissions).map((permission) =>
-      JSON.parse(permission)
-    );
+    // Convert to array, parse, and sort alphabetically by permission name
+    return Array.from(uniquePermissions)
+      .map((permission) => JSON.parse(permission))
+      .sort((a, b) => a.name.localeCompare(b.name));
   }
 
   async function getDuration(accountId) {
     setDuration("");
-    const duration = item.map((data) => {
-      data.accounts.map((account, index) => {
-        if (account.id == accountId) {
-          setMaxDuration(data.duration);
+    let minDuration = null;
+    
+    item.forEach((data) => {
+      const matchingAccount = data.accounts.find(
+        (account) => String(account.id) === String(accountId)
+      );
+      
+      if (matchingAccount) {
+        const policyDuration = parseInt(data.duration, 10);
+        if (minDuration === null || policyDuration < minDuration) {
+          minDuration = policyDuration;
         }
-      });
+      }
     });
+    
+    if (minDuration !== null) {
+      setMaxDuration(minDuration);
+    }
   }
 
   async function getPermissions(accountId) {
