@@ -37,29 +37,54 @@ def get_account_parent_ou(account_id):
         raise
 
 
+def get_eligibility_entries(entity_id):
+    """
+    Get all eligibility entries for a single user or group ID.
+
+    Supports both old format (id = entityId) and new format (entityId field
+    queried via the byEntityId GSI). Deduplicates across both lookups.
+    """
+    entries = []
+    seen_ids = set()
+
+    # New format: query by entityId GSI
+    try:
+        response = eligibility_table.query(
+            IndexName='byEntityId',
+            KeyConditionExpression='entityId = :eid',
+            ExpressionAttributeValues={':eid': entity_id}
+        )
+        for item in response.get('Items', []):
+            item_id = item.get('id')
+            if item_id not in seen_ids:
+                seen_ids.add(item_id)
+                entries.append(item)
+    except ClientError as e:
+        print(f"GSI query failed for {entity_id} (may not exist yet): {e.response['Error']['Message']}")
+
+    # Old format: direct lookup where id = entityId
+    try:
+        response = eligibility_table.get_item(Key={"id": entity_id})
+        if "Item" in response:
+            item = response["Item"]
+            if item.get("id") not in seen_ids:
+                entries.append(item)
+    except ClientError as e:
+        print(f"Direct get_item failed for {entity_id}: {e.response['Error']['Message']}")
+
+    return entries
+
+
 def get_user_eligibility(user_id, group_ids):
     """Get all eligibility entries for user and their groups"""
     eligibility_entries = []
-    
-    # Get user's direct eligibility
-    try:
-        response = eligibility_table.get_item(Key={"id": user_id})
-        if "Item" in response:
-            eligibility_entries.append(response["Item"])
-    except ClientError as e:
-        print(f"Error getting eligibility for user {user_id}: {e}")
-    
-    # Get group eligibilities
-    for group_id in group_ids:
-        if not group_id:
+
+    for entity_id in [user_id] + group_ids:
+        if not entity_id:
             continue
-        try:
-            response = eligibility_table.get_item(Key={"id": group_id})
-            if "Item" in response:
-                eligibility_entries.append(response["Item"])
-        except ClientError as e:
-            print(f"Error getting eligibility for group {group_id}: {e}")
-    
+        entries = get_eligibility_entries(entity_id)
+        eligibility_entries.extend(entries)
+
     return eligibility_entries
 
 
